@@ -47,19 +47,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _startTypewriter();
     // _initSpeech();
   }
-  // Future<void> _initSpeech() async {
-  //   _speechAvailable = await _speech.initialize(
-  //     onStatus: (status) {
-  //       if (status == 'done' || status == 'notListening') {
-  //         if (mounted) setState(() => _isListening = false);
-  //       }
-  //     },
-  //     onError: (error) {
-  //       if (mounted) setState(() => _isListening = false);
-  //     },
-  //   );
-  //   if (mounted) setState(() {});
-  // }
 //   Future<void> _toggleListening() async {
 //     if (!_speechAvailable) {
 //       Get.snackbar(
@@ -193,100 +180,100 @@ class _SearchScreenState extends State<SearchScreen> {
                     // SizedBox(width: 10.w),
 
                     // // Search field
-                    // Expanded(
-                    //   child: SizedBox(
-                    //     height: 50.h,
-                    //     child: TextField(
-                    //       controller: searchController,
-                    //       onChanged: (v) {
-                    //         controller.query.value = v;
-                    //         if (v.isEmpty) {
-                    //           _typeTimer?.cancel();
-                    //           _charIndex = 0;
-                    //           _currentHint = '';
-                    //           _isDeleting = false;
-                    //           _startTypewriter();
-                    //         } else {
-                    //           _typeTimer?.cancel();
-                    //           setState(() => _currentHint = '');
-                    //         }
-                    //       },
-                    //       onSubmitted: (value) {
-                    //         if (value.trim().isNotEmpty) {
-                    //           controller.addSearch(value.trim());
-                    //         }
-                    //       },
-                    //       style:
-                    //           TextStyle(color: Colors.white, fontSize: 14.sp),
-                    //       decoration: InputDecoration(
-                    //         isDense: true,
-                    //         hintText: _isListening
-                    //             ? 'Listening...'
-                    //             : 'Search $_currentHint',
-                    //         hintStyle: TextStyle(
-                    //           color: _isListening
-                    //               ? Colors.red.shade300
-                    //               : Colors.white38,
-                    //           fontSize: 12.sp,
-                    //           fontWeight: FontWeight.w500,
-                    //         ),
-                    //         prefixIcon: Icon(Icons.search,
-                    //             color: Colors.white54, size: 18.sp),
+                    Expanded(
+                      child: SizedBox(
+                        height: 50.h,
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: (v) {
+                            controller.query.value = v;
+                            if (v.isEmpty) {
+                              _typeTimer?.cancel();
+                              _charIndex = 0;
+                              _currentHint = '';
+                              _isDeleting = false;
+                              _startTypewriter();
+                            } else {
+                              _typeTimer?.cancel();
+                              setState(() => _currentHint = '');
+                            }
+                          },
+                          onSubmitted: (value) {
+                            if (value.trim().isNotEmpty) {
+                              controller.addSearch(value.trim());
+                            }
+                          },
+                          style:
+                              TextStyle(color: Colors.white, fontSize: 14.sp),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: _isListening
+                                ? 'Listening...'
+                                : 'Search $_currentHint',
+                            hintStyle: TextStyle(
+                              color: _isListening
+                                  ? Colors.red.shade300
+                                  : Colors.white38,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            prefixIcon: Icon(Icons.search,
+                                color: Colors.white54, size: 18.sp),
 
-                    //         // ✅ Mic button on right side
-                    //         // suffixIcon: GestureDetector(
-                    //         //   onTap: _toggleListening,
-                    //         //   child: AnimatedContainer(
-                    //         //     duration: const Duration(milliseconds: 200),
-                    //         //     margin: EdgeInsets.all(8.r),
-                    //         //     padding: EdgeInsets.all(6.r),
-                    //         //     decoration: BoxDecoration(
-                    //         //       color: _isListening
-                    //         //           ? Colors.red
-                    //         //           : Colors.grey.shade800,
-                    //         //       shape: BoxShape.circle,
-                    //         //     ),
-                    //         //     child: Icon(
-                    //         //       _isListening ? Icons.mic : Icons.mic_none,
-                    //         //       color: Colors.white,
-                    //         //       size: 16.sp,
-                    //         //     ),
-                    //         //   ),
-                    //         // ),
+                            // ✅ Mic button on right side
+                            // suffixIcon: GestureDetector(
+                            //   onTap: _toggleListening,
+                            //   child: AnimatedContainer(
+                            //     duration: const Duration(milliseconds: 200),
+                            //     margin: EdgeInsets.all(8.r),
+                            //     padding: EdgeInsets.all(6.r),
+                            //     decoration: BoxDecoration(
+                            //       color: _isListening
+                            //           ? Colors.red
+                            //           : Colors.grey.shade800,
+                            //       shape: BoxShape.circle,
+                            //     ),
+                            //     child: Icon(
+                            //       _isListening ? Icons.mic : Icons.mic_none,
+                            //       color: Colors.white,
+                            //       size: 16.sp,
+                            //     ),
+                            //   ),
+                            // ),
 
-                    //         filled: true,
-                    //         fillColor: Colors.grey.shade900,
-                    //         contentPadding: EdgeInsets.symmetric(
-                    //           vertical: 0,
-                    //           horizontal: 15.w,
-                    //         ),
-                    //         border: OutlineInputBorder(
-                    //           borderRadius: BorderRadius.circular(12.r),
-                    //           borderSide: BorderSide(
-                    //               color: AppColors.orangedark, width: 2.w),
-                    //         ),
-                    //         focusedBorder: OutlineInputBorder(
-                    //           borderRadius: BorderRadius.circular(12.r),
-                    //           borderSide: BorderSide(
-                    //             color: _isListening
-                    //                 ? Colors.red
-                    //                 : AppColors.orangedark,
-                    //             width: 2.w,
-                    //           ),
-                    //         ),
-                    //         enabledBorder: OutlineInputBorder(
-                    //           borderRadius: BorderRadius.circular(12.r),
-                    //           borderSide: BorderSide(
-                    //             color: _isListening
-                    //                 ? Colors.red.withOpacity(0.5)
-                    //                 : AppColors.orangedark,
-                    //             width: 2.w,
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
+                            filled: true,
+                            fillColor: Colors.grey.shade900,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 0,
+                              horizontal: 15.w,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                  color: AppColors.orangedark, width: 2.w),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: _isListening
+                                    ? Colors.red
+                                    : AppColors.orangedark,
+                                width: 2.w,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: _isListening
+                                    ? Colors.red.withOpacity(0.5)
+                                    : AppColors.orangedark,
+                                width: 2.w,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
 
