@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:gutrgoopro/bottombar/bottom_controller.dart';
+import 'package:gutrgoopro/home/model/movie_model.dart';
+import 'package:gutrgoopro/home/screen/details_screen.dart';
 import 'package:gutrgoopro/profile/getx/favorites_controller.dart';
 import 'package:gutrgoopro/uitls/colors.dart';
 
@@ -12,49 +14,58 @@ class FavoritesScreen extends StatelessWidget {
   final FavoritesController controller = Get.find<FavoritesController>();
 
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return PopScope(
-  canPop: false,
-  onPopInvokedWithResult: (didPop, result) {
-    if (didPop) return;
-    _goBack();
-  },
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _goBack();
+      },
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: AppColors.background,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white,size: 20.sp),
-            onPressed:   _goBack,
+            icon: Icon(Icons.arrow_back, color: Colors.white, size: 20.sp),
+            onPressed: _goBack,
           ),
-          title:  Text(
+          title: Text(
             "My Favorites",
-            style: TextStyle(color: Colors.white,fontSize: 20.sp),
+            style: TextStyle(color: Colors.white, fontSize: 20.sp),
           ),
         ),
         body: Obx(
           () {
             if (controller.favorites.isEmpty) {
-              return  Center(
-                child: Text(
-                  "No Favorites yet",
-                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.favorite_border,
+                        color: Colors.white24, size: 48.sp),
+                    SizedBox(height: 12.h),
+                    Text(
+                      "No Favorites yet",
+                      style:
+                          TextStyle(color: Colors.white70, fontSize: 14.sp),
+                    ),
+                  ],
                 ),
               );
             }
-      
+
             return GridView.builder(
-              padding:  EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(16.w),
               itemCount: controller.favorites.length,
-              gridDelegate:
-                   SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 16.w,
                 crossAxisSpacing: 16.r,
                 childAspectRatio: 0.8,
               ),
               itemBuilder: (context, index) {
+                // return Obx(() => _favoriteCard(index));
                 return _favoriteCard(index);
               },
             );
@@ -63,57 +74,108 @@ class FavoritesScreen extends StatelessWidget {
       ),
     );
   }
+
   void _goBack() {
     if (fromProfile) {
-      // ✅ Opened from profile tab — just pop back to profile
       Get.back();
     } else {
-      // ✅ Opened from bottom nav tab — switch to home tab
       Get.find<NavigationController>().changeTab(0);
     }
   }
 
   Widget _favoriteCard(int index) {
+  if (index >= controller.favorites.length) return const SizedBox();
+
+  final item = controller.favorites[index];
+  final String imageUrl = item.image;
+
+  return GestureDetector(
+   onTap: () {
   final item = controller.favorites[index];
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.asset(
-                item.image,
-                height: 200.h,
-                width: double.infinity,
-                fit: BoxFit.cover,
+  print("🎬 Opening Movie: ${item.id}");
+
+  
+  Get.to(
+  () => VideoDetailScreen(
+     videoId: item.id, 
+    key: ValueKey('video_${item.videoTrailer}'),
+
+    // ✅ BASIC
+    videoTrailer: item.videoTrailer,
+    videoMoives: item.videoMovies.isNotEmpty
+        ? item.videoMovies
+        : item.videoTrailer,
+
+    image: item.image,
+    subtitle: item.subtitle,
+    videoTitle: item.title,
+
+    // ✅ IMPORTANT
+    dis: item.description.isNotEmpty
+        ? item.description
+        : item.subtitle,
+
+    logoImage: item.logoImage,
+
+    // 🔥 FULL DATA PASS
+    imdbRating: item.imdbRating,
+    ageRating: item.ageRating,
+    directorInfo: item.directorInfo,
+    castInfo: item.castInfo,
+    tagline: item.tagline,
+    fullStoryline: item.fullStoryline,
+    genres: item.genres,
+    tags: item.tags,
+    language: item.language,
+    duration: item.duration,
+    releaseYear: item.releaseYear,
+  ),
+  );
+},
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        color: Colors.grey,
+                        child: Icon(Icons.movie,
+                            color: Colors.white24, size: 28.sp),
+                      ),
               ),
-            ),
-            Positioned(
-              top: 5.h,
-              right: 5.w,
-              child: GestureDetector(
-                onTap: () {
-                  controller.toggleFavorite(index);
-                },
-                child:  CircleAvatar(
-                  radius: 10.r,
-                  backgroundColor: Colors.black54,
-                  child: Icon(
-                    Icons.favorite,
-                    color: Colors.red,
-                    size: 10.sp,
+
+              // ❌ Remove Button
+              Positioned(
+                top: 5.h,
+                right: 5.w,
+                child: GestureDetector(
+                onTap: () => controller.removeFavorite(item.id),
+                  child: CircleAvatar(
+                    radius: 10.r,
+                    backgroundColor: Colors.black54,
+                    child: Icon(
+                      Icons.favorite,
+                      color: Colors.red,
+                      size: 10.sp,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
-
 }

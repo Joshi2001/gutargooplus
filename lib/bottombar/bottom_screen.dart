@@ -44,24 +44,29 @@ class CustomBottomNavigation extends StatelessWidget {
         selectedFontSize: 10.sp,
         unselectedFontSize: 10.sp,
 
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, size: 24.sp),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined, size: 24.sp),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite, size: 24.sp),
-            label: 'Favorite',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outlined, size: 24.sp),
-            label: 'Profile',
-          ),
-        ],
+       items: [
+  BottomNavigationBarItem(
+    icon: Icon(Icons.home_outlined, size: 24.sp),
+    label: 'Home',
+  ),
+  BottomNavigationBarItem(
+    icon: Icon(Icons.search_outlined, size: 24.sp),
+    label: 'Search',
+  ),
+  // BottomNavigationBarItem(
+  //   icon: Image.asset("assets/potli.png", width: 24.w, height: 24.h,color: Colors.white,), // ✅ NEW
+  //   label: 'Potli',
+  // ),
+  BottomNavigationBarItem(
+    icon: Icon(Icons.favorite, size: 24.sp),
+   
+    label: 'Favorite',
+  ),
+  BottomNavigationBarItem(
+    icon: Icon(Icons.person_outlined, size: 24.sp),
+    label: 'Profile',
+  ),
+],
       ),
     );
   }

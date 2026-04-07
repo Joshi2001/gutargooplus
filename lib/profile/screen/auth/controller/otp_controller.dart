@@ -1,158 +1,69 @@
-import 'dart:math';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:gutrgoopro/uitls/local_store.dart';
 import 'package:gutrgoopro/profile/screen/auth/service/otp_service.dart';
+import 'package:gutrgoopro/uitls/local_store.dart'; // ← add this
 
 class LoginController extends GetxController {
-  final isSending = false.obs;
-  final isVerifying = false.obs;
-  final errorMessage = ''.obs;
+  final OtpService _otpService = OtpService();
 
-  // ======= TEST CONFIG =======
-  final String defaultTestPhone = "9999999999"; 
-  final String defaultTestOtp = "123456";     
+  final RxBool isSending = false.obs;
+  final RxBool isVerifying = false.obs;
+  final RxString errorMessage = ''.obs;
+  final RxString phoneNumber = ''.obs;
 
-  final phoneNumber = ''.obs;
-  final generatedOtp = ''.obs;
+  // ✅ Add these to store after verify
+  final RxString authToken = ''.obs;
+  final Rx<Map<String, dynamic>> currentUser = Rx<Map<String, dynamic>>({});
 
-  final phoneController = TextEditingController();
-  final otpController = TextEditingController();
-
-  // Generate OTP
-  String _generateOtp(String mobile) {
-    if (mobile == defaultTestPhone) {
-      return defaultTestOtp;   // 🔹 123456 only for 9999999999
-    } else {
-      final random = Random();
-      return (100000 + random.nextInt(900000)).toString(); // Random for others
-    }
-  }
-
-  // Send OTP
-  Future<bool> sendOtp(String mobile) async {
-    if (mobile.isEmpty || mobile.length != 10) {
-      errorMessage.value = 'Please enter a valid 10-digit mobile number';
-      return false;
-    }
-
-    try {
-      isSending.value = true;
-      errorMessage.value = '';
-
-      final otp = _generateOtp(mobile);
-      generatedOtp.value = otp;
-      phoneNumber.value = mobile;
-
-      if (kDebugMode) {
-        print('🔐 Generated OTP: $otp');
-        print('📱 Phone Number: $mobile');
-      }
-
-      // 🔹 Send SMS to ALL numbers (including 9999999999)
-      final success = await OtpService.sendOtp(
-        mobile: mobile,
-        otp: otp,
-      );
-
-      if (success) {
-        if (kDebugMode) {
-          print('✅ OTP sent successfully');
-        }
-        return true;
-      } else {
-        errorMessage.value = 'Failed to send OTP. Please try again.';
-        if (kDebugMode) {
-          print('❌ Failed to send OTP');
-        }
-        return false;
-      }
-    } catch (e) {
-      errorMessage.value = 'Something went wrong: $e';
-      if (kDebugMode) {
-        print('❌ Error sending OTP: $e');
-      }
-      return false;
-    } finally {
-      isSending.value = false;
-    }
-  }
-
-  // Verify OTP
-  Future<bool> verifyOtp(String enteredOtp) async {
-    if (enteredOtp.isEmpty || enteredOtp.length != 6) {
-      errorMessage.value = 'Please enter a valid 6-digit OTP';
-      return false;
-    }
-
-    try {
-      isVerifying.value = true;
-      errorMessage.value = '';
-
-      if (kDebugMode) {
-        print('🔍 Verifying OTP...');
-        print('Entered: $enteredOtp');
-        print('Expected: ${generatedOtp.value}');
-      }
-
-      if (enteredOtp == generatedOtp.value) {
-        if (kDebugMode) {
-          print('✅ OTP verified successfully!');
-        }
-
-        await LocalStore.saveLoginState(
-          isLoggedIn: true,
-          userId: phoneNumber.value,
-          phoneNumber: phoneNumber.value,
-        );
-
-        if (kDebugMode) {
-          print('💾 Login state saved to SharedPreferences');
-        }
-
-        return true;
-      } else {
-        errorMessage.value = 'Invalid OTP. Please try again.';
-        if (kDebugMode) {
-          print('❌ OTP verification failed');
-        }
-        return false;
-      }
-    } catch (e) {
-      errorMessage.value = 'Verification failed: $e';
-      if (kDebugMode) {
-        print('❌ Error verifying OTP: $e');
-      }
-      return false;
-    } finally {
-      isVerifying.value = false;
-    }
-  }
-
-  // Resend OTP
-  Future<bool> resendOtp() async {
-    if (kDebugMode) {
-      print('🔄 Resending OTP to ${phoneNumber.value}');
-    }
-    return await sendOtp(phoneNumber.value);
-  }
-  Future<void> logout() async {
-    await LocalStore.logout();
-    phoneNumber.value = '';
-    generatedOtp.value = '';
+  Future<bool> sendOtp(String phone) async {
+    isSending.value = true;
     errorMessage.value = '';
-    phoneController.clear();
-    otpController.clear();
+    print('📤 [Controller] sendOtp() → phone: $phone');
 
-    if (kDebugMode) {
-      print('👋 User logged out');
+    final result = await _otpService.sendOtp(phone);
+    isSending.value = false;
+
+    if (result['success'] == true) {
+      phoneNumber.value = phone;
+      print('✅ [Controller] OTP sent');
+      return true;
+    } else {
+      errorMessage.value = result['message'] ?? 'Something went wrong.';
+      print('❌ [Controller] sendOtp failed: ${errorMessage.value}');
+      return false;
     }
   }
-  @override
-  void onClose() {
-    phoneController.dispose();
-    otpController.dispose();
-    super.onClose();
+
+  Future<bool> verifyOtp(String otp) async {
+    isVerifying.value = true;
+    errorMessage.value = '';
+    print('📤 [Controller] verifyOtp() → phone: ${phoneNumber.value} | otp: $otp');
+
+    final result = await _otpService.verifyOtp(phoneNumber.value, otp);
+    isVerifying.value = false;
+
+    if (result['success'] == true) {
+      // ✅ Save token & user from API response
+      final token = result['token'] ?? '';
+      final user = result['user'] ?? {};
+
+      authToken.value = token;
+      currentUser.value = Map<String, dynamic>.from(user);
+
+      // ✅ Persist token to local storage
+      await LocalStore.setToken(token);
+      await LocalStore.setMobile(user['mobile'] ?? '');
+
+      print('✅ [Controller] OTP verified | token: $token');
+      return true;
+    } else {
+      errorMessage.value = result['message'] ?? 'OTP verification failed.';
+      print('❌ [Controller] verifyOtp failed: ${errorMessage.value}');
+      return false;
+    }
+  }
+
+  Future<bool> resendOtp() async {
+    if (phoneNumber.value.isEmpty) return false;
+    return await sendOtp(phoneNumber.value);
   }
 }

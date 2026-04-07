@@ -5,6 +5,7 @@ import 'package:gutrgoopro/bottombar/bottom_bind.dart';
 import 'package:gutrgoopro/bottombar/bottom_binding.dart';
 import 'dart:ui';
 import 'package:gutrgoopro/profile/screen/auth/otp.dart';
+import 'package:gutrgoopro/uitls/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void showSignOutPopup(BuildContext context) {
@@ -195,23 +196,16 @@ void showSignOutPopup(BuildContext context) {
 }
 Future<void> _signOut() async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); 
-    await prefs.remove('token');
-    await prefs.remove('userId');
-    await prefs.remove('isLoggedIn');
-
+    await LocalStore.logout(); // ✅ Bas yahi kafi hai
+    
     Get.deleteAll();
-     Get.offAll(
-          () => const PhoneLoginScreen(),
-          // binding: BottomBindings(),
-        );
+    Get.offAll(() => const PhoneLoginScreen());
     
   } catch (e) {
     print('Sign out error: $e');
-     Get.offAll(
-          () => const BottomNavigationScreen(initialIndex: 0),
-          binding: BottomBindings(),
-        );
+    Get.offAll(
+      () => const BottomNavigationScreen(initialIndex: 0),
+      binding: BottomBindings(),
+    );
   }
 }

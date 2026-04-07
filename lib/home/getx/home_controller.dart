@@ -1,240 +1,279 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:gutrgoopro/home/model/banner_model.dart';
+import 'package:gutrgoopro/home/model/category_model.dart';
+import 'package:gutrgoopro/home/model/home_section_model.dart';
+import 'package:gutrgoopro/home/model/movie_model.dart';
+import 'package:gutrgoopro/home/repo/repo_home_section.dart';
+import 'package:gutrgoopro/home/service/banner_service.dart';
+import 'package:gutrgoopro/home/service/category_service.dart';
+import 'package:gutrgoopro/profile/getx/login_controller.dart';
+import 'package:gutrgoopro/uitls/local_store.dart';
 
 class HomeController extends GetxController {
-   final ScrollController scrollController = ScrollController();
+  final ScrollController scrollController = ScrollController();
   final RxBool isTopBarSolid = false.obs;
-  RxInt selectedCategoryIndex = 0.obs; 
-  
- void clearContinueWatching() {
-    continueWatching.clear();
+  final RxInt selectedCategoryIndex = 0.obs;
+final RxString userToken = ''.obs;
+  final RxBool isLoadingBanners = true.obs;
+  final RxBool isLoadingCategories = false.obs;
+  final RxBool isLoadingSections = true.obs;
+  final RxBool isLoadingTrending = false.obs;
+  final RxString errorMessage = ''.obs;
+
+  final RxList<BannerMovie> allBanners = <BannerMovie>[].obs;
+
+  final RxList<HomeSectionModel> allSections = <HomeSectionModel>[].obs;
+  final RxList<HomeSectionModel> homeSections = <HomeSectionModel>[].obs;
+
+  final RxList<BannerMovie> bannerMovies = <BannerMovie>[].obs;
+  final RxList<MovieModel> featuredMovies = <MovieModel>[].obs;
+  final RxList<CategoryModel> categories = <CategoryModel>[].obs;
+
+  final RxList<Map<String, dynamic>> bannerLegacyList =
+      <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> continueWatching =
+      <Map<String, dynamic>>[].obs;
+
+  final HomeSectionRepository _sectionRepo = HomeSectionRepository();
+
+  // ── Category tab names ───────────────────────────────────────────────────
+  List<String> get categoryNames {
+    if (categories.isEmpty) {
+      return ['Home', 'Movies', 'TV Shows', 'Web Series'];
+    }
+    return ['Home', ...categories.map((c) => c.name)];
   }
-final List<String> categoryNames = [
-  "Home",
-  'Movies',
-  'TV Shows',
-  'Web Series',
-];
-final RxInt selectedLiveMatchIndex = 0.obs;
 
-void selectLiveMatch(int index) {
-  selectedLiveMatchIndex.value = index;
-}
- void selectCategory(int index) {
-    selectedCategoryIndex.value = index;
+  CategoryModel? get selectedCategory {
+    final idx = selectedCategoryIndex.value;
+    if (idx == 0) return null;
+    final dynamicIndex = idx - 1;
+    if (dynamicIndex < categories.length) return categories[dynamicIndex];
+    return null;
   }
 
+  List<MovieModel> get trendingMovies =>
+      homeSections.expand((s) => s.items).toList();
 
+  List<Map<String, dynamic>> get trendingList {
+    final result = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    for (final section in homeSections) {
+      for (final movie in section.items) {
+        if (!seen.add(movie.id)) continue;
+        result.add({
+          '_id': movie.id,
+          'title': movie.movieTitle,
+          'image': movie.verticalPosterUrl,
+          'subtitle': movie.genresString,
+          'videoTrailer': movie.trailerUrl,
+          'videoMovies': movie.playUrl,
+          'dis': movie.description,
+          'logoImage': movie.logoUrl,
+          'imdbRating': movie.imdbRating,
+          'ageRating': movie.ageRating,
+        });
+      }
+    }
+    return result;
+  }
 
+  final RxInt selectedLiveMatchIndex = 0.obs;
   final RxInt currentBannerIndex = 0.obs;
-  final RxString bannerTitle = ''.obs;
-  final RxString bannerSubtitle = ''.obs;
-  final RxString bannerSeason = ''.obs;
-
-  PageController pageController = PageController();
+  PageController? pageController;
   Timer? _timer;
+
+  void selectCategory(int index) {
+    selectedCategoryIndex.value = index;
+    _applyFilter();
+    _applyBannerFilter();
+  }
+
+  void selectLiveMatch(int index) => selectedLiveMatchIndex.value = index;
+  void clearContinueWatching() => continueWatching.clear();
+  void onBannerPageChanged(int index) => currentBannerIndex.value = index;
+
+  // ── Filter allSections → homeSections ────────────────────────────────────
+  void _applyFilter() {
+    final category = selectedCategory;
+
+    if (category == null) {
+      // Home tab — show sections that have visibleTabs containing 'home' OR no tab restriction
+      final homeFiltered = allSections.where((s) {
+        if (s.visibleTabs.isEmpty) return true;
+        return s.visibleTabs.contains('home');
+      }).toList();
+      homeSections.assignAll(homeFiltered);
+      return;
+    }
+
+    // Category tab — filter sections by categoryId
+    final filtered = <HomeSectionModel>[];
+    for (final section in allSections) {
+      if (section.categoryId == category.id) {
+        filtered.add(section);
+      } else {
+        // Also try matching by items' categoryId
+        final matchingItems = section.items
+            .where((m) => m.categoryId == category.id)
+            .toList();
+        if (matchingItems.isNotEmpty) {
+          filtered.add(section.copyWith(items: matchingItems));
+        }
+      }
+    }
+    homeSections.assignAll(filtered);
+  }
+
+  // ── Main fetch ────────────────────────────────────────────────────────────
+  Future<void> fetchHomeData() async {
+    await Future.wait([
+      _fetchCategories(),
+      _fetchBanners(),
+      _fetchSections(),
+    ]);
+  }
+
+  // ── FETCH CATEGORIES ──────────────────────────────────────────────────────
+  Future<void> _fetchCategories() async {
+    try {
+      isLoadingCategories.value = true;
+      final result = await CategoryService.fetchCategories();
+      categories.assignAll(result);
+    } catch (e) {
+      debugPrint('_fetchCategories error: $e');
+    } finally {
+      isLoadingCategories.value = false;
+    }
+  }
+
+  // ── FETCH BANNERS ─────────────────────────────────────────────────────────
+  Future<void> _fetchBanners() async {
+    try {
+      isLoadingBanners.value = true;
+      errorMessage.value = '';
+      final banners = await BannerMovieService.fetchAllBanners(limit: 50);
+      allBanners.assignAll(banners);
+      _applyBannerFilter();
+    } catch (e) {
+      errorMessage.value = e.toString();
+      debugPrint('_fetchBanners error: $e');
+    } finally {
+      isLoadingBanners.value = false;
+    }
+  }
+
+  void _applyBannerFilter() {
+    final category = selectedCategory;
+
+    if (category == null) {
+      bannerMovies.assignAll(allBanners);
+    } else {
+      final filtered = allBanners
+          .where((b) => b.categoryId == category.id)
+          .toList();
+      bannerMovies.assignAll(filtered);
+    }
+
+    bannerLegacyList.assignAll(
+      bannerMovies.map(_bannerToLegacyMap).toList(),
+    );
+
+    debugPrint(
+      '🎯 Banner filter: category=${category?.name ?? "Home"} '
+      '→ ${bannerMovies.length} banners',
+    );
+  }
+
+  // ── FETCH SECTIONS ────────────────────────────────────────────────────────
+  Future<void> _fetchSections() async {
+    try {
+      isLoadingSections.value = true;
+      isLoadingTrending.value = true;
+
+      final sections = await _sectionRepo.fetchSections();
+
+      allSections.assignAll(sections);
+      _applyFilter();
+
+      debugPrint(
+          '✅ allSections: ${allSections.length}, homeSections: ${homeSections.length}');
+    } catch (e) {
+      debugPrint('_fetchSections error: $e');
+      homeSections.clear();
+    } finally {
+      isLoadingSections.value = false;
+      isLoadingTrending.value = false;
+    }
+  }
+
+  Future<void> fetchSectionsByCategory(String categoryId) async {
+    try {
+      isLoadingSections.value = true;
+      final sections =
+          await _sectionRepo.fetchSections(categoryId: categoryId);
+      allSections.assignAll(sections);
+      homeSections.assignAll(sections);
+    } catch (e) {
+      debugPrint('fetchSectionsByCategory error: $e');
+      homeSections.clear();
+    } finally {
+      isLoadingSections.value = false;
+    }
+  }
+
+  Map<String, dynamic> _bannerToLegacyMap(BannerMovie b) => {
+        'id': b.id,
+        'image': b.mobileImage,
+        'title': b.title,
+        'subtitle': b.genres.join(', '),
+        'videoTrailer': b.trailerUrl.isNotEmpty ? b.trailerUrl : b.movieUrl,
+        'videoMovies': b.movieUrl,
+        'dis': b.description,
+        'logoImage': b.logoImage,
+        'live': false,
+        'imdbRating': b.imdbRating,
+        'ageRating': b.ageLimit,
+      };
 
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!pageController.hasClients) return;
-
-      int nextPage = currentBannerIndex.value + 1;
-      // if (nextPage >= banners.length) nextPage = 0;
-
-      pageController.animateToPage(
-        nextPage,
+      if (pageController == null || !pageController!.hasClients) return;
+      final max = bannerMovies.isEmpty
+          ? featuredMovies.length
+          : bannerMovies.length;
+      if (max == 0) return;
+      final next = (currentBannerIndex.value + 1) % max;
+      pageController!.animateToPage(
+        next,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
-
     });
   }
-
-  final PageController heroController = PageController(
-  initialPage: 1,
-  viewportFraction: 0.92,  
-);
-  void onBannerPageChanged(int index) {
-    currentBannerIndex.value = index;
-  
-  }
-
- 
-
-  final RxList<Map<String, dynamic>> trendingList = <Map<String, dynamic>>[
-    {
-      "image": "assets/1.png",
-      "title": "The Networker (Trailer)",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      "dis":"After his MLM company fails, Aditya partners with networker Lallan and friend Raghav to launch new ventures backed by Pradhan. They hire a motivational speaker and fake MD before absconding to Dubai with investors",
-    },
-    {
-      "image": "assets/img4.png",
-      "title": "Alien Frank",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/0c0f5ae6-316d-48c3-8ea1-4de616bb62ec/playlist.m3u8',
-      'videoMovies':'https://vz-fd5fa6c8-ece.b-cdn.net/fa890afd-7f35-4cf1-a8f4-fb6131948bd3/playlist.m3u8',
-      "dis":"Alien Frank is a thought-provoking Hindi movie that explores the life of Adolf Hitler through his own perspective—a never-seen-before angle that challenges history, truth, and propaganda",
-    },
-     {
-      "image": "assets/img3.jpeg",
-      "title": "Sumeru",
-      "subtitle": "ROMANCE, MUSICAL, COMEDY",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/74cd202a-fad1-4a09-9db0-95469c58e6f0/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/1da2826f-84ed-4f42-9941-47ba419f9f57/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-    {
-      "image": "assets/awasaan_trailer.jpg",
-      "title": "Awasaan",
-      "subtitle": "Hindi • Drama ",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/5f48d5c0-af80-48a7-bfc1-93017cf7ee2b/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/5f48d5c0-af80-48a7-bfc1-93017cf7ee2b/playlist.m3u8',
-      "dis":"This film tells the story of a 27 year old boy named Satyawan Shukla who hails from Prayagraj and from a lower middle class family. His father is a poor priest and mother house wife, his father falls pray to a social change which urges him to make his son engineer for which he has to sell 50% of his farm l and. After not finding a satisfactory job Satyawan leaves for Lucknow and there he prepares for a government job and at the same time searching for a private job. He struggles to find a s mall pay scale job, which could not support his family economics as a result Satyawan is forced t o do small and odd jobs even though he has to sell newspapers and repair mobile phones, but suddenly a Government job vacancy comes on his way he happily goes to apply for it but on finding that there is only 2 vacancies for general category. He decided not to apply for it and at the same time he finds that if he can manage a government officer he may get a government job, he does it and becomes a car driver of a government officer after spending some time he persuades the officer for one job in exchange of Rs. 15 Lakh. Satyawan father sells his every piece of land and gives 15 lakh to that officer. Now the question is will Satyawan get one job in a government department or will something else happen to Satyawan?",
-    },
-    {
-      "image": "assets/red_trailer.jpg",
-      "title": "The Red Land",
-      "subtitle": "Crime • Drama • Action",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/ca6482b3-f5c9-4e82-a5bb-25c21b327a2f/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/34764e34-c1a3-4b5b-a31f-e7e36b2b566c/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-  ].obs;
-final RxList<Map<String, dynamic>> top10List = <Map<String, dynamic>>[
-     {
-      "image": "assets/1.png",
-      "title": "The Networker (Trailer)",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      "dis":"After his MLM company fails, Aditya partners with networker Lallan and friend Raghav to launch new ventures backed by Pradhan. They hire a motivational speaker and fake MD before absconding to Dubai with investors",
-    },
-    {
-      "image": "assets/img4.png",
-      "title": "Alien Frank",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/0c0f5ae6-316d-48c3-8ea1-4de616bb62ec/playlist.m3u8',
-      'videoMovies':'https://vz-fd5fa6c8-ece.b-cdn.net/fa890afd-7f35-4cf1-a8f4-fb6131948bd3/playlist.m3u8',
-      "dis":"Alien Frank is a thought-provoking Hindi movie that explores the life of Adolf Hitler through his own perspective—a never-seen-before angle that challenges history, truth, and propaganda",
-    },
-     {
-      "image": "assets/img3.jpeg",
-      "title": "Sumeru",
-      "subtitle": "ROMANCE, MUSICAL, COMEDY",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/74cd202a-fad1-4a09-9db0-95469c58e6f0/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/1da2826f-84ed-4f42-9941-47ba419f9f57/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-    {
-      "image": "assets/awasaan_trailer.jpg",
-      "title": "Awasaan",
-      "subtitle": "Hindi • Drama r",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/5f48d5c0-af80-48a7-bfc1-93017cf7ee2b/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/5f48d5c0-af80-48a7-bfc1-93017cf7ee2b/playlist.m3u8',
-      "dis":"This film tells the story of a 27 year old boy named Satyawan Shukla who hails from Prayagraj and from a lower middle class family. His father is a poor priest and mother house wife, his father falls pray to a social change which urges him to make his son engineer for which he has to sell 50% of his farm l and. After not finding a satisfactory job Satyawan leaves for Lucknow and there he prepares for a government job and at the same time searching for a private job. He struggles to find a s mall pay scale job, which could not support his family economics as a result Satyawan is forced t o do small and odd jobs even though he has to sell newspapers and repair mobile phones, but suddenly a Government job vacancy comes on his way he happily goes to apply for it but on finding that there is only 2 vacancies for general category. He decided not to apply for it and at the same time he finds that if he can manage a government officer he may get a government job, he does it and becomes a car driver of a government officer after spending some time he persuades the officer for one job in exchange of Rs. 15 Lakh. Satyawan father sells his every piece of land and gives 15 lakh to that officer. Now the question is will Satyawan get one job in a government department or will something else happen to Satyawan?",
-    },
-    {
-      "image": "assets/red_trailer.jpg",
-      "title": "The Red Land",
-      "subtitle": "Crime • Drama • Action",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/ca6482b3-f5c9-4e82-a5bb-25c21b327a2f/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/34764e34-c1a3-4b5b-a31f-e7e36b2b566c/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-  ].obs;
-
-  final RxList<Map<String, dynamic>> continueWatching = <Map<String, dynamic>>[
-    {
-      "image": "assets/1.png",
-      "title": "The Networker (Trailer)",
-      "subtitle": "Comedy . Thriller",
-      "progress": 0.6,
-      "duration": "2:45:00",
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      "dis":"After his MLM company fails, Aditya partners with networker Lallan and friend Raghav to launch new ventures backed by Pradhan. They hire a motivational speaker and fake MD before absconding to Dubai with investors",
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/24d07fc8-2468-45f9-95be-290a06553197/playlist.m3u8',
-      
-    },
-    {
-      "image": "assets/img4.png",
-      "title": "Alien Frank",
-      "subtitle": "Lakers vs Heat",
-      "progress": 0.4,
-      "duration": "2:15:00",
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/fa890afd-7f35-4cf1-a8f4-fb6131948bd3/playlist.m3u8',
-      "dis":"Alien Frank is a thought-provoking Hindi movie that explores the life of Adolf Hitler through his own perspective—a never-seen-before angle that challenges history, truth, and propaganda",
-      'videoMovies':'https://vz-fd5fa6c8-ece.b-cdn.net/fa890afd-7f35-4cf1-a8f4-fb6131948bd3/playlist.m3u8'
-    },
-     {
-      "image": "assets/img3.jpeg",
-      "title": "Sumeru",
-      "subtitle": "ROMANCE, MUSICAL, COMEDY",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/74cd202a-fad1-4a09-9db0-95469c58e6f0/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/1da2826f-84ed-4f42-9941-47ba419f9f57/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-  {
-      "image": "assets/img4.jpeg",
-      "title": "Art Of The Dead",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/74cd202a-fad1-4a09-9db0-95469c58e6f0/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/1da2826f-84ed-4f42-9941-47ba419f9f57/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-    {
-      "image": "assets/6.jpg",
-      "title": "Bad Cat",
-      "subtitle": "Comedy . Thriller",
-      "live": true,
-      'videoTrailer': 'https://vz-fd5fa6c8-ece.b-cdn.net/74cd202a-fad1-4a09-9db0-95469c58e6f0/playlist.m3u8',
-      'videoMovies': 'https://vz-fd5fa6c8-ece.b-cdn.net/1da2826f-84ed-4f42-9941-47ba419f9f57/playlist.m3u8',
-      "dis":"Bhavar Paratp Singh has left everything is search of his father and he meets Savi accidentally who came for her destination wedding in Harsil. The story further continues in their struggle of finding Bhavar's father and they eventually fall in love in the journey",
-    },
-  ].obs;
 
   @override
   void onInit() {
     super.onInit();
-      selectedCategoryIndex.value = 0;
-
+    fetchHomeData();
+     loadToken();
     _startAutoScroll();
     scrollController.addListener(() {
-  if (scrollController.offset <= 0) {
-    
-    isTopBarSolid.value = true;
-  } else {
-    
-    isTopBarSolid.value = false;
+      isTopBarSolid.value = scrollController.offset > 0;
+    });
   }
-});
-  }
-
+Future<void> loadToken() async {
+  final token = await LocalStore.getToken();
+  userToken.value = token ?? '';
+  print("🔑 Loaded Token: ${userToken.value}");
+}
   @override
   void onClose() {
     _timer?.cancel();
-    pageController.dispose();
+    pageController?.dispose();
     scrollController.dispose();
     super.onClose();
-  }
-
-
-  Future<void> fetchHomeData() async {
-    await Future.delayed(const Duration(seconds: 2));
   }
 }

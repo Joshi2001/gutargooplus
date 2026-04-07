@@ -59,7 +59,11 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   xml: ^6.5.0
   http: ^1.2.1
-
+  shimmer: ^3.0.0
+  pip: ^0.0.3
+  flutter_chrome_cast: ^1.4.1
+  dio: ^5.9.2
+  startapp_sdk: ^1.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

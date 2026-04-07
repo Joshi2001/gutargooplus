@@ -1,22 +1,43 @@
 package com.gutargoo.gutrgoopro
 
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugins.GeneratedPluginRegistrant  // ← add this
+import android.app.PictureInPictureParams
+import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
+import android.util.Rational
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        
-        // Fix black/white screen in recent apps
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+
+    private val CHANNEL = "pip_channel"
+
+    override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "enterPip") {
+                    val entered = enterPipMode()
+                    result.success(entered) // ✅ true/false return karo
+                } else {
+                    result.notImplemented()
+                }
+            }
     }
 
-    // ← add this entire function
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        GeneratedPluginRegistrant.registerWith(flutterEngine)
+    private fun enterPipMode(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val aspectRatio = Rational(16, 9)
+                val pipBuilder = PictureInPictureParams.Builder()
+                pipBuilder.setAspectRatio(aspectRatio)
+                enterPictureInPictureMode(pipBuilder.build())
+                true
+            } catch (e: Exception) {
+                false
+            }
+        } else {
+            false // Android O se purana device, PiP nahi
+        }
     }
 }

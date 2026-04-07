@@ -1,12 +1,18 @@
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_chrome_cast/_google_cast_context/google_cast_context.dart';
+import 'package:flutter_chrome_cast/entities/cast_options.dart';
+import 'package:flutter_chrome_cast/entities/discovery_criteria.dart';
+import 'package:flutter_chrome_cast/models/android/android_cast_options.dart';
+import 'package:flutter_chrome_cast/models/ios/ios_cast_options.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/get_navigation/src/routes/transitions_type.dart';
-import 'package:gutrgoopro/ad/controller/ad_controller.dart';
 import 'package:gutrgoopro/bottombar/bottom_bind.dart';
 import 'package:gutrgoopro/navigation/route_observer.dart';
 import 'package:gutrgoopro/bottombar/bottom_controller.dart';
@@ -16,15 +22,17 @@ import 'package:gutrgoopro/profile/getx/download_controller.dart';
 import 'package:gutrgoopro/profile/getx/favorites_controller.dart';
 import 'package:gutrgoopro/profile/getx/profile_controller.dart';
 import 'package:gutrgoopro/profile/screen/auth/controller/otp_controller.dart';
-import 'package:gutrgoopro/search.dart/search_controller.dart';
+import 'package:gutrgoopro/search.dart/controller/search_controller.dart';
 import 'package:gutrgoopro/splash/splash_screen.dart';
 import 'package:screen_protector/screen_protector.dart';
 
 Future<void> main() async {
+  _initCast();
   WidgetsFlutterBinding.ensureInitialized();
     SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.edgeToEdge,
   );
+
   // final available = await InAppPurchase.instance.isAvailable();
   // print("billing $available");
     // await MobileAds.instance.initialize(); 
@@ -42,6 +50,8 @@ Future<void> main() async {
     // DeviceOrientation.landscapeLeft,
     DeviceOrientation.portraitDown,
   ]);
+   PaintingBinding.instance.imageCache.maximumSize = 50;        // max 50 images
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; //
     // await Firebase.initializeApp(
     //   options: DefaultFirebaseOptions.currentPlatform,
     // );
@@ -59,6 +69,18 @@ Future<void> main() async {
     Get.put(DownloadsController());
     Get.put(NavigationController(), permanent: true);
   });
+  
+}void _initCast() {
+  const appId = GoogleCastDiscoveryCriteria.kDefaultApplicationId;
+  GoogleCastOptions options;
+  if (Platform.isIOS) {
+    options = IOSGoogleCastOptions(
+      GoogleCastDiscoveryCriteriaInitialize.initWithApplicationID(appId),
+    );
+  } else {
+    options = GoogleCastOptionsAndroid(appId: appId);
+  }
+  GoogleCastContext.instance.setSharedInstanceWithOptions(options);
 }
     
 

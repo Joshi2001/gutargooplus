@@ -4,7 +4,7 @@ import 'package:gutrgoopro/bottombar/bottom_controller.dart';
 import 'package:gutrgoopro/home/getx/home_controller.dart';
 import 'package:gutrgoopro/profile/getx/favorites_controller.dart';
 import 'package:gutrgoopro/profile/getx/profile_controller.dart';
-import 'package:gutrgoopro/search.dart/search_controller.dart';
+import 'package:gutrgoopro/search.dart/controller/search_controller.dart';
 
 class BottomBindings extends Bindings {
   @override

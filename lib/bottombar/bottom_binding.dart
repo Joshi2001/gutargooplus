@@ -6,7 +6,7 @@ import 'package:gutrgoopro/bottombar/bottom_screen.dart';
 import 'package:gutrgoopro/home/screen/home_screen.dart';
 import 'package:gutrgoopro/profile/screen/favorites_profile.dart';
 import 'package:gutrgoopro/profile/screen/profile_screen.dart';
-import 'package:gutrgoopro/search.dart/search_screen.dart';
+import 'package:gutrgoopro/search.dart/screen/search_screen.dart';
 import 'package:gutrgoopro/uitls/colors.dart';
 
 class BottomNavigationScreen extends StatefulWidget {
@@ -86,8 +86,20 @@ Widget _buildBody(int index) {
   switch (index) {
     case 0: return HomeScreen();
     case 1: return SearchScreen(fromBottomNav: true);
+    // case 2: return PotliHomeScreen(); // 👈 NEW SCREEN
     case 2: return FavoritesScreen(fromProfile: false);
     case 3: return ProfileScreen();
     default: return HomeScreen();
   }
 }}
+
+// Widget _buildBody(int index) {
+//   switch (index) {
+//     case 0: return HomeScreen();
+//     case 1: return SearchScreen(fromBottomNav: true);
+//     case 2: return PotliHomeScreen(); // 👈 NEW SCREEN
+//     case 3: return FavoritesScreen(fromProfile: false);
+//     case 4: return ProfileScreen();
+//     default: return HomeScreen();
+//   }
+// }}

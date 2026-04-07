@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:gutrgoopro/home/getx/view_all_controller.dart';
+import 'package:gutrgoopro/home/model/movie_model.dart';
 import 'package:gutrgoopro/home/screen/details_screen.dart';
 
 class ViewAllScreen extends StatelessWidget {
@@ -11,7 +12,14 @@ class ViewAllScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ViewAllController controller = Get.put(ViewAllController());
+    final ViewAllController controller = Get.put(
+      ViewAllController(),
+      tag: title,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadSection(title);
+    });
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -32,45 +40,101 @@ class ViewAllScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Obx(
-        () => GridView.builder(
-          // padding: EdgeInsets.all(12.w),
-          padding: EdgeInsets.zero,
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
+
+        if (controller.items.isEmpty) {
+          return Center(
+            child: Text(
+              'No content available',
+              style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+            ),
+          );
+        }
+
+        return GridView.builder(
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            // crossAxisSpacing: 10.w,
-            // mainAxisSpacing: 12.h,
-            childAspectRatio: 0.65,
+            crossAxisSpacing: 4.w,
+            mainAxisSpacing: 4.h,
+            childAspectRatio: 0.55,
           ),
           itemCount: controller.items.length,
           itemBuilder: (context, index) {
             final item = controller.items[index];
-    
+            final String imageUrl = item['image']?.toString() ?? '';
+
             return GestureDetector(
               onTap: () {
+                // Rebuild full MovieModel so detail screen gets all data
+                final MovieModel movie = MovieModel.fromLegacyMap(
+                  Map<String, dynamic>.from(item),
+                );
                 Get.to(
-                  () => VideoDetailScreen(
-                    videoTrailer: item['videoTrailer'],
-                    videoMoives: item['videoMovies'] ?? item['videoTrailer'],
-                    image: item['image'] ?? "",
-                    subtitle: item['subtitle'] ?? "",
-                    videoTitle: item['title'],
-                    dis: item['dis'], logoImage: '',
-                  ),
+                  () => VideoDetailScreen.fromModel(movie),
+                  transition: Transition.fadeIn,
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: EdgeInsets.all(4.w),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6.r),
-                      child: Image.asset(
-                        item['image'],
-                        height: 160.h,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6.r),
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, progress) {
+                                  if (progress == null) return child;
+                                  return Container(
+                                    color: Colors.grey[900],
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white54,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stack) {
+                                  return Container(
+                                    color: Colors.grey[850],
+                                    child: Icon(
+                                      Icons.movie,
+                                      color: Colors.white30,
+                                      size: 36.sp,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: Colors.grey[850],
+                                child: Icon(
+                                  Icons.movie,
+                                  color: Colors.white30,
+                                  size: 36.sp,
+                                ),
+                              ),
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      item['title']?.toString() ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        height: 1.3,
                       ),
                     ),
                   ],
@@ -78,10 +142,8 @@ class ViewAllScreen extends StatelessWidget {
               ),
             );
           },
-        ),
-      ),
+        );
+      }),
     );
-    
   }
-  
 }
