@@ -45,8 +45,6 @@ class BannerMovieService {
       rethrow;
     }
   }
-
-  // ── Fetch all banners for home (no featured filter) ────────────────────────
   static Future<List<BannerMovie>> fetchAllBanners({int limit = 20}) async {
     try {
       final uri = Uri.parse(

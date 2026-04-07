@@ -25,8 +25,8 @@
     android:foregroundServiceType="mediaPlayback" />
          <meta-data
         android:name="startapp_app_id"
-        android:value="123456789"/>
-        <meta-data
+        android:value=""/>
+        <meta-data    
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-8807008985465514~8882889699"/>
         <meta-data
