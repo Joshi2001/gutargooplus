@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:gutrgoopro/home/model/movie_model.dart';
 
 class HomeSectionModel {
@@ -26,40 +27,37 @@ class HomeSectionModel {
   }) : items = items ?? [];
 
   factory HomeSectionModel.fromJson(Map<String, dynamic> json) {
-    final sectionData = json['sectionData'] as Map<String, dynamic>?;
-    final rawMovieIds = (sectionData?['movies'] ?? []) as List<dynamic>;
-    final movieIds = rawMovieIds.map((e) => e.toString()).toList();
+  final sectionData = json['sectionData'] as Map<String, dynamic>?;
 
-    final rawItems =
-        (json['items'] ?? json['populatedMovies'] ?? []) as List<dynamic>;
+  final rawMovies = sectionData?['movies'];
+  final movieIds = rawMovies is List
+      ? rawMovies.map((e) => e.toString()).toList()
+      : <String>[];
 
-    final visibleTabs =
-        ((json['visibleTabs'] ?? []) as List<dynamic>)
-            .map((e) => e.toString())
-            .toList();
+  final rawWebseries = sectionData?['webseries'];
+  final webseriesIds = rawWebseries is List
+      ? rawWebseries.map((e) => e.toString()).toList()
+      : <String>[];
 
-    return HomeSectionModel(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
-      title: (json['title'] ?? json['name'] ?? '').toString(),
-      sectionType: (json['sectionType'] ?? json['type'] ?? 'default').toString(),
-      displayStyle: (json['displayStyle'] ?? 'default').toString(),
-      displayOrder: _parseInt(json['displayOrder'] ?? json['order'] ?? 0),
-      isActive: json['isActive'] == true || json['active'] == true,
-      movieIds: movieIds,
-      visibleTabs: visibleTabs,
-      categoryId: json['categoryId']?.toString(),
-      items: rawItems
-          .map((e) {
-            try {
-              return MovieModel.fromJson(e as Map<String, dynamic>);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<MovieModel>()
-          .toList(),
-    );
-  }
+  final allIds = [...movieIds, ...webseriesIds];
+
+  debugPrint('🔍 Parsing "${json['title']}" → movies: ${movieIds.length}, webseries: ${webseriesIds.length}');
+
+  return HomeSectionModel(
+    id: (json['_id'] ?? json['id'] ?? '').toString(),
+    title: (json['title'] ?? json['name'] ?? '').toString(),
+    sectionType: (json['sectionType'] ?? json['type'] ?? 'default').toString(),
+    displayStyle: (json['displayStyle'] ?? 'default').toString(),
+    displayOrder: _parseInt(json['displayOrder'] ?? json['order'] ?? 0),
+    isActive: json['isActive'] == true || json['active'] == true,
+    movieIds: allIds,
+    visibleTabs: ((json['visibleTabs'] ?? []) as List<dynamic>)
+        .map((e) => e.toString())
+        .toList(),
+    categoryId: json['categoryId']?.toString(),
+    items: [],
+  );
+}
 
   static int _parseInt(dynamic v) {
     if (v == null) return 0;

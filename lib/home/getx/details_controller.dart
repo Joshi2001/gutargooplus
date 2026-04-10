@@ -66,7 +66,7 @@ void loadFromModel(MovieModel movie) {
     ...movie.castMembers.map((e) => {
       'name': e.name,
       'role': 'Actor',
-      'character': e.character ?? '',
+      'character': e.character,
       'image': e.imageUrl,
     }),
   ];

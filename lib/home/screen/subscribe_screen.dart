@@ -12,7 +12,7 @@ class SubscriptionScreen extends GetView<SubscriptionController> {
   Widget build(BuildContext context) {
     return WillPopScope(
   onWillPop: () async {
-    Get.back(); // ya apna logic
+    Get.back();
     return false;
   },
   child:
@@ -81,7 +81,7 @@ class SubscriptionScreen extends GetView<SubscriptionController> {
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               child: GestureDetector(
                 // onTap: () => Get.to(() => BottomNavigationScreen()),
-              onTap: () =>  showComingSoonPopup(context),
+              onTap: () =>  showComingSoonPlansPopup(context),
                 child: _subscribeButton(),
               ),
             ),

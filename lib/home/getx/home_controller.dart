@@ -8,7 +8,6 @@ import 'package:gutrgoopro/home/model/movie_model.dart';
 import 'package:gutrgoopro/home/repo/repo_home_section.dart';
 import 'package:gutrgoopro/home/service/banner_service.dart';
 import 'package:gutrgoopro/home/service/category_service.dart';
-import 'package:gutrgoopro/profile/getx/login_controller.dart';
 import 'package:gutrgoopro/uitls/local_store.dart';
 
 class HomeController extends GetxController {
@@ -21,9 +20,9 @@ final RxString userToken = ''.obs;
   final RxBool isLoadingSections = true.obs;
   final RxBool isLoadingTrending = false.obs;
   final RxString errorMessage = ''.obs;
-
+bool _isDataLoaded = false;
   final RxList<BannerMovie> allBanners = <BannerMovie>[].obs;
-
+var isLoadingHome = true.obs;
   final RxList<HomeSectionModel> allSections = <HomeSectionModel>[].obs;
   final RxList<HomeSectionModel> homeSections = <HomeSectionModel>[].obs;
 
@@ -38,7 +37,6 @@ final RxString userToken = ''.obs;
 
   final HomeSectionRepository _sectionRepo = HomeSectionRepository();
 
-  // ── Category tab names ───────────────────────────────────────────────────
   List<String> get categoryNames {
     if (categories.isEmpty) {
       return ['Home', 'Movies', 'TV Shows', 'Web Series'];
@@ -95,61 +93,51 @@ final RxString userToken = ''.obs;
   void clearContinueWatching() => continueWatching.clear();
   void onBannerPageChanged(int index) => currentBannerIndex.value = index;
 
-  // ── Filter allSections → homeSections ────────────────────────────────────
   void _applyFilter() {
-    final category = selectedCategory;
+  final category = selectedCategory;
 
-    if (category == null) {
-      // Home tab — show sections that have visibleTabs containing 'home' OR no tab restriction
-      final homeFiltered = allSections.where((s) {
-        if (s.visibleTabs.isEmpty) return true;
-        return s.visibleTabs.contains('home');
-      }).toList();
-      homeSections.assignAll(homeFiltered);
-      return;
-    }
-
-    // Category tab — filter sections by categoryId
-    final filtered = <HomeSectionModel>[];
-    for (final section in allSections) {
-      if (section.categoryId == category.id) {
-        filtered.add(section);
-      } else {
-        // Also try matching by items' categoryId
-        final matchingItems = section.items
-            .where((m) => m.categoryId == category.id)
-            .toList();
-        if (matchingItems.isNotEmpty) {
-          filtered.add(section.copyWith(items: matchingItems));
-        }
-      }
-    }
-    homeSections.assignAll(filtered);
+  if (category == null) {
+    homeSections.assignAll(allSections);
+    return;
   }
 
-  // ── Main fetch ────────────────────────────────────────────────────────────
-  Future<void> fetchHomeData() async {
+  final filtered = allSections.where((section) {
+
+    if (section.categoryId == category.id) return true;
+
+
+    return false;
+  }).toList();
+
+  homeSections.assignAll(filtered);
+}
+    Future<void> fetchHomeData() async {
+       try {
+    isLoadingHome.value = true;
+
     await Future.wait([
       _fetchCategories(),
-      _fetchBanners(),
-      _fetchSections(),
+        _fetchBanners(),
+        _fetchSections(),
     ]);
+  } finally {
+    isLoadingHome.value = false;
+  }
   }
 
-  // ── FETCH CATEGORIES ──────────────────────────────────────────────────────
   Future<void> _fetchCategories() async {
-    try {
-      isLoadingCategories.value = true;
-      final result = await CategoryService.fetchCategories();
-      categories.assignAll(result);
-    } catch (e) {
-      debugPrint('_fetchCategories error: $e');
-    } finally {
-      isLoadingCategories.value = false;
-    }
-  }
+  try {
+    isLoadingCategories.value = true;
+    final result = await CategoryService.fetchCategories();
+    categories.assignAll(result);
+  } catch (e) {
+    debugPrint('_fetchCategories error: $e');
 
-  // ── FETCH BANNERS ─────────────────────────────────────────────────────────
+    categories.clear();
+  } finally {
+    isLoadingCategories.value = false;
+  }
+}
   Future<void> _fetchBanners() async {
     try {
       isLoadingBanners.value = true;
@@ -167,7 +155,6 @@ final RxString userToken = ''.obs;
 
   void _applyBannerFilter() {
     final category = selectedCategory;
-
     if (category == null) {
       bannerMovies.assignAll(allBanners);
     } else {
@@ -176,39 +163,35 @@ final RxString userToken = ''.obs;
           .toList();
       bannerMovies.assignAll(filtered);
     }
-
     bannerLegacyList.assignAll(
       bannerMovies.map(_bannerToLegacyMap).toList(),
     );
-
     debugPrint(
       '🎯 Banner filter: category=${category?.name ?? "Home"} '
       '→ ${bannerMovies.length} banners',
     );
   }
 
-  // ── FETCH SECTIONS ────────────────────────────────────────────────────────
+
   Future<void> _fetchSections() async {
-    try {
-      isLoadingSections.value = true;
-      isLoadingTrending.value = true;
+  try {
+    isLoadingSections.value = true;
+    isLoadingTrending.value = true;
 
-      final sections = await _sectionRepo.fetchSections();
+    final sections = await _sectionRepo.fetchSections();
 
-      allSections.assignAll(sections);
-      _applyFilter();
+    allSections.assignAll(sections);
+    _applyFilter();
 
-      debugPrint(
-          '✅ allSections: ${allSections.length}, homeSections: ${homeSections.length}');
-    } catch (e) {
-      debugPrint('_fetchSections error: $e');
-      homeSections.clear();
-    } finally {
-      isLoadingSections.value = false;
-      isLoadingTrending.value = false;
-    }
+    debugPrint('✅ allSections: ${allSections.length}, homeSections: ${homeSections.length}');
+  } catch (e) {
+    debugPrint('❌ _fetchSections error: $e');
+    homeSections.clear();
+  } finally {
+    isLoadingSections.value = false;
+    isLoadingTrending.value = false;
   }
-
+}
   Future<void> fetchSectionsByCategory(String categoryId) async {
     try {
       isLoadingSections.value = true;
@@ -254,16 +237,32 @@ final RxString userToken = ''.obs;
     });
   }
 
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   fetchHomeData();
+  //    loadToken();
+  //   _startAutoScroll();
+  //   scrollController.addListener(() {
+  //     isTopBarSolid.value = scrollController.offset > 0;
+  //   });
+  // }
   @override
-  void onInit() {
-    super.onInit();
+void onInit() {
+  super.onInit();
+
+  if (!_isDataLoaded) {
     fetchHomeData();
-     loadToken();
-    _startAutoScroll();
-    scrollController.addListener(() {
-      isTopBarSolid.value = scrollController.offset > 0;
-    });
+    _isDataLoaded = true;
   }
+
+  loadToken();
+  _startAutoScroll();
+
+  scrollController.addListener(() {
+    isTopBarSolid.value = scrollController.offset > 0;
+  });
+}
 Future<void> loadToken() async {
   final token = await LocalStore.getToken();
   userToken.value = token ?? '';

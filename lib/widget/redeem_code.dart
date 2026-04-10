@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gutrgoopro/profile/model/redeem_model.dart';
 import 'package:gutrgoopro/profile/service/redeem_service.dart';
 
-
 class RedeemCodeBottomSheet {
   static void show(BuildContext context, {required String authToken}) {
     showModalBottomSheet(
@@ -26,13 +25,11 @@ class _RedeemSheetState extends State<_RedeemSheet> {
   final TextEditingController _codeController = TextEditingController();
   final RedeemService _service = RedeemService();
 
-  // UI State
   bool _isRedeeming = false;
   bool _isLoadingList = false;
   String? _errorMessage;
   String? _successMessage;
 
-  // Redeem list
   List<RedeemCode> _redeemList = [];
   bool _showList = false;
 
@@ -42,7 +39,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
     super.dispose();
   }
 
-  // ─── POST: Redeem code ──────────────────────────────────────────────────────
   Future<void> _handleRedeem() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) {
@@ -71,7 +67,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
     }
   }
 
-  // ─── GET: Load redeem list ──────────────────────────────────────────────────
   Future<void> _toggleRedeemList() async {
     if (_showList) {
       setState(() => _showList = false);
@@ -111,7 +106,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag Handle
               Center(
                 child: Container(
                   width: 40,
@@ -123,8 +117,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Title Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -143,8 +135,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Text Field
               TextField(
                 controller: _codeController,
                 style: const TextStyle(color: Colors.white),
@@ -177,7 +167,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
               ),
               const SizedBox(height: 12),
 
-              // Error / Success Messages
               if (_errorMessage != null)
                 _StatusBanner(
                     message: _errorMessage!, isSuccess: false),
@@ -187,7 +176,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
 
               const SizedBox(height: 12),
 
-              // Redeem Button
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -221,7 +209,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Toggle Redeem List
               GestureDetector(
                 onTap: _toggleRedeemList,
                 child: Row(
@@ -246,7 +233,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
                 ),
               ),
 
-              // Redeem List
               if (_showList) ...[
                 const SizedBox(height: 16),
                 if (_isLoadingList)
@@ -295,8 +281,6 @@ class _RedeemSheetState extends State<_RedeemSheet> {
   }
 }
 
-// ─── Status Banner ───────────────────────────────────────────────────────────
-
 class _StatusBanner extends StatelessWidget {
   final String message;
   final bool isSuccess;
@@ -341,8 +325,6 @@ class _StatusBanner extends StatelessWidget {
     );
   }
 }
-
-// ─── Redeem Code Tile ────────────────────────────────────────────────────────
 
 class _RedeemCodeTile extends StatelessWidget {
   final RedeemCode code;

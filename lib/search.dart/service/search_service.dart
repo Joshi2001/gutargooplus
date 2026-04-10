@@ -1,25 +1,34 @@
 import 'dart:convert';
+import 'package:gutrgoopro/uitls/api.dart';
 import 'package:http/http.dart' as http;
 import 'package:gutrgoopro/home/model/movie_model.dart';
 
 class SearchService {
-  static const String _baseUrl =
-      'http://81.17.100.176/api/search';
   static const Duration _timeout = Duration(seconds: 15);
+
   Future<List<MovieModel>> searchMovies(String query) async {
-    if (query.trim().isEmpty) {
+    final trimmed = query.trim();
+
+    if (trimmed.isEmpty) {
       throw SearchException('Query cannot be empty');
     }
+
     http.Response? response;
+
     try {
-     final uri = Uri.parse(_baseUrl).replace(
-  queryParameters: {'query': query.trim()},
-);
+      final baseUri = Uri.parse(MyApi.search);
+      final uri = Uri(
+        scheme: baseUri.scheme,
+        host: baseUri.host,
+        port: baseUri.port,
+        path: baseUri.path,
+        queryParameters: {'query': trimmed},
+      );
 
       print('🔍 API Request: $uri');
 
       response = await http
-          .get(                              
+          .get(
             uri,
             headers: {
               'Content-Type': 'application/json',
@@ -40,14 +49,18 @@ class SearchService {
       print('❌ Body was: ${response?.body}');
       throw SearchException('Invalid response format');
     } catch (e) {
+      if (e is SearchException) rethrow; // ✅ Fix: don't wrap SearchException
       throw SearchException('Unexpected error: $e');
     }
   }
 
-  /// Handle API response
   List<MovieModel> _handleResponse(http.Response response) {
     if (response.statusCode >= 500) {
       throw SearchException('Server error (${response.statusCode})');
+    }
+
+    if (response.statusCode == 404) {
+      throw SearchException('Search endpoint not found');
     }
 
     final decoded = jsonDecode(response.body);
@@ -87,10 +100,8 @@ class SearchService {
   }
 }
 
-/// Custom Exception
 class SearchException implements Exception {
   final String message;
-
   SearchException(this.message);
 
   @override

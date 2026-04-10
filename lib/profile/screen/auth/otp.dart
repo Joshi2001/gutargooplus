@@ -105,10 +105,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                                   colors: [
                                     Colors.transparent,
                                     Colors.black.withOpacity(0.1),
-                                    Colors.black.withOpacity(0.3),
-                                    Colors.black.withOpacity(0.6),
+                                    Colors.black.withOpacity(0.4),
+                                    Colors.black.withOpacity(0.7),
                                   ],
-                                  stops: [0.0, 0.3, 0.6, 1.0],
+                                  stops: [0.0, 0.5, 0.8, 1.0],
                                 ),
                               ),
                             ),
@@ -166,9 +166,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ],
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10.w),
-              child: Expanded(
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -350,7 +350,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         fit: BoxFit.contain,
                       ),
                     ),
-
                     SizedBox(height: 10.h),
                   ],
                 ),

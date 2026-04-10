@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:gutrgoopro/profile/model/redeem_model.dart';
+import 'package:gutrgoopro/uitls/api.dart';
 import 'package:http/http.dart' as http;
 
 class RedeemService {
-  static const String _baseUrl = 'https://gutargoobackend1.onrender.com/api';
-
   static final RedeemService _instance = RedeemService._internal();
   factory RedeemService() => _instance;
   RedeemService._internal();
@@ -12,11 +11,11 @@ class RedeemService {
   Future<List<RedeemCode>> getRedeemList(String authToken) async {
     print('🔵 [RedeemService] getRedeemList() called');
     print('🔑 [RedeemService] authToken: $authToken');
-    print('🌐 [RedeemService] URL: $_baseUrl/redeem/list');
+    print('🌐 [RedeemService] URL: ${MyApi.redeemGet}');
 
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/redeem/list'),
+        Uri.parse(MyApi.redeemGet),
         headers: _headers(authToken),
       );
 
@@ -54,7 +53,6 @@ class RedeemService {
     }
   }
 
-  /// Redeem a code
   Future<RedeemResult> redeemCode(String authToken, String code) async {
     print('🔵 [RedeemService] redeemCode() called');
     print('🔑 authToken: $authToken');
@@ -62,11 +60,11 @@ class RedeemService {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/redeem'),
+        Uri.parse(MyApi.redeemPost),
         headers: _headers(authToken),
         body: json.encode({'code': code}),
       );
-
+      
       print('📡 Status Code: ${response.statusCode}');
       print('📦 Raw Response: ${response.body}');
 
@@ -89,14 +87,11 @@ class RedeemService {
       rethrow;
     }
   }
-
-  /// Headers with Bearer token
   Map<String, String> _headers(String authToken) => {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
       };
 
-  /// Parse error message from response body
   String _parseError(String responseBody) {
     try {
       final body = json.decode(responseBody);

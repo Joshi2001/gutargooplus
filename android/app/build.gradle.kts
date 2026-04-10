@@ -37,7 +37,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 9
+        versionCode = 10
         versionName = flutter.versionName
         multiDexEnabled =  true
     }
@@ -62,6 +62,7 @@ android {
 }
 }
 dependencies {
+    
     // Import the Firebase BoM
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies

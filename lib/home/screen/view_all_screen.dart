@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:gutrgoopro/home/getx/view_all_controller.dart';
 import 'package:gutrgoopro/home/model/movie_model.dart';
 import 'package:gutrgoopro/home/screen/details_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ViewAllScreen extends StatelessWidget {
   final String title;
@@ -46,7 +47,6 @@ class ViewAllScreen extends StatelessWidget {
             child: CircularProgressIndicator(color: Colors.white),
           );
         }
-
         if (controller.items.isEmpty) {
           return Center(
             child: Text(
@@ -55,7 +55,6 @@ class ViewAllScreen extends StatelessWidget {
             ),
           );
         }
-
         return GridView.builder(
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -71,7 +70,6 @@ class ViewAllScreen extends StatelessWidget {
 
             return GestureDetector(
               onTap: () {
-                // Rebuild full MovieModel so detail screen gets all data
                 final MovieModel movie = MovieModel.fromLegacyMap(
                   Map<String, dynamic>.from(item),
                 );
@@ -93,35 +91,39 @@ class ViewAllScreen extends StatelessWidget {
                                 imageUrl,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
+                                cacheWidth: 200,
                                 loadingBuilder: (context, child, progress) {
                                   if (progress == null) return child;
-                                  return Container(
-                                    color: Colors.grey[900],
-                                    child: const Center(
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white54,
-                                        strokeWidth: 2,
+                                  return Shimmer.fromColors(
+                                    baseColor: Colors.grey.shade900,
+                                    highlightColor: Colors.grey.shade700,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(
+                                          6.r,
+                                        ),
                                       ),
                                     ),
                                   );
                                 },
-                                errorBuilder: (context, error, stack) {
-                                  return Container(
-                                    color: Colors.grey[850],
-                                    child: Icon(
-                                      Icons.movie,
-                                      color: Colors.white30,
-                                      size: 36.sp,
-                                    ),
-                                  );
-                                },
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.grey[850],
+                                  child: Icon(
+                                    Icons.movie,
+                                    color: Colors.white30,
+                                    size: 36.sp,
+                                  ),
+                                ),
                               )
-                            : Container(
-                                color: Colors.grey[850],
-                                child: Icon(
-                                  Icons.movie,
-                                  color: Colors.white30,
-                                  size: 36.sp,
+                            : Shimmer.fromColors(
+                                baseColor: Colors.grey.shade900,
+                                highlightColor: Colors.grey.shade700,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
                                 ),
                               ),
                       ),

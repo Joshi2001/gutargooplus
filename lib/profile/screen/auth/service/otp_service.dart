@@ -1,17 +1,15 @@
 import 'dart:convert';
+import 'package:gutrgoopro/uitls/api.dart';
 import 'package:http/http.dart' as http;
 
 class OtpService {
-  static const String _baseUrl = 'https://gutargoobackend1.onrender.com';
   Future<Map<String, dynamic>> sendOtp(String phone) async {
     print('📤 [OtpService] sendOtp() called with phone: $phone');
     try {
-      final url = Uri.parse('$_baseUrl/api/otp/send');
+      final url = Uri.parse('${MyApi.sendOtp}');
       final body = jsonEncode({'mobile': phone.trim()});
-
       print('🌐 [OtpService] POST $url');
       print('📦 [OtpService] Request body: $body');
-
       final response = await http.post(
         url,
         headers: {
@@ -20,7 +18,6 @@ class OtpService {
         },
         body: body,
       );
-
       print('📥 [OtpService] Response status: ${response.statusCode}');
       print('📥 [OtpService] Response body: ${response.body}');
 
@@ -48,7 +45,7 @@ class OtpService {
     ? phone.trim()
     : '91${phone.trim()}';
 
-      final url = Uri.parse('$_baseUrl/api/otp/verify');
+      final url = Uri.parse('${MyApi.verifyOtp}');
      final body = jsonEncode({
   'mobile': phoneWithCountryCode, 
   'otp': otp.trim(),

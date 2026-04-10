@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 
 class PotliService {
   static const String _bannersUrl =
-      'http://81.17.100.176/api/banners';
+      'https://gutargooplus.com/api/api//banners';
   static const String _moviesUrl =
-      'http://81.17.100.176/api/movies';
+      'https://gutargooplus.com/api/api//movies';
 
   static const Map<String, String> _headers = {
     'Content-Type': 'application/json',

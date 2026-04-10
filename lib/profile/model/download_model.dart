@@ -1,4 +1,5 @@
 class DownloadItem {
+  final String videoId; // ✅ ADD THIS
   final String title;
   final String subtitle;
   final String image;
@@ -7,6 +8,7 @@ class DownloadItem {
   final DateTime downloadedAt;
 
   DownloadItem({
+    required this.videoId, // ✅ ADD
     required this.title,
     required this.subtitle,
     required this.image,
@@ -15,8 +17,9 @@ class DownloadItem {
     required this.downloadedAt,
   });
 
-  // ✅ Save to SharedPreferences
+  // ================= JSON =================
   Map<String, dynamic> toJson() => {
+        'videoId': videoId, // ✅ ADD
         'title': title,
         'subtitle': subtitle,
         'image': image,
@@ -25,8 +28,8 @@ class DownloadItem {
         'downloadedAt': downloadedAt.toIso8601String(),
       };
 
-  // ✅ Load from SharedPreferences
   factory DownloadItem.fromJson(Map<String, dynamic> json) => DownloadItem(
+        videoId: json['videoId'] ?? "", // ✅ ADD
         title: json['title'] ?? '',
         subtitle: json['subtitle'] ?? '',
         image: json['image'] ?? '',

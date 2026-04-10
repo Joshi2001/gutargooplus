@@ -178,6 +178,7 @@ class MovieModel {
   final String createdBy;
   final String createdAt;
   final String updatedAt;
+  final bool isPartial;
 
   const MovieModel({
     this.id = '',
@@ -231,8 +232,21 @@ class MovieModel {
     this.createdBy = '',
     this.createdAt = '',
     this.updatedAt = '', required this.categoryId,
+    this.isPartial = false, 
   });
-
+factory MovieModel.partial({
+  required String id,
+  required String verticalPosterUrl,
+  required String horizontalBannerUrl,
+}) {
+  return MovieModel(
+    id: id,
+    categoryId: '',
+    horizontalBanner: MediaAsset(url: horizontalBannerUrl),
+    verticalPoster: MediaAsset(url: verticalPosterUrl),
+    isPartial: true,
+  );
+}
   factory MovieModel.fromJson(Map<String, dynamic> json) {
 
     List<String> _strings(String key) {

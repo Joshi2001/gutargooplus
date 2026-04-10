@@ -1,24 +1,20 @@
+import 'package:gutrgoopro/uitls/api.dart';
 import 'package:http/http.dart' as http;
 
 class FavoriteService {
-  static const String baseUrl =
-      "http://81.17.100.176/api/movie-likes";
-
+ 
   Future<bool> likeMovie(String movieId, String token) async {
     try {
       print("👉 LIKE API (GET) CALLED");
       print("📌 Movie ID: $movieId");
-
-      final url = "$baseUrl/$movieId";
+      final url = "${MyApi.like}/$movieId";
       print("🌐 URL: $url");
-
       final response = await http.get(
         Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
         },
       );
-
       print("👍 LIKE STATUS: ${response.statusCode}");
       print("📦 RESPONSE: ${response.body}");
 
@@ -33,7 +29,7 @@ class FavoriteService {
       print("👉 UNLIKE API (GET) CALLED");
       print("📌 Movie ID: $movieId");
 
-      final url = "$baseUrl/$movieId"; 
+      final url = "${MyApi.like}/$movieId"; 
       print("🌐 URL: $url");
 
       final response = await http.get(

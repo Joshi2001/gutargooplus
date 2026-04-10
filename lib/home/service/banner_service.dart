@@ -1,14 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gutrgoopro/home/model/banner_model.dart';
+import 'package:gutrgoopro/uitls/api.dart';
 import 'package:http/http.dart' as http;
 
 class BannerMovieService {
-  static const String _baseUrl =
-      'http://81.17.100.176/api/banners';
-
-  static const String _moviesBaseUrl =
-      'http://81.17.100.176/api/movies';
 
   static Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -22,7 +18,7 @@ class BannerMovieService {
     String order = 'desc',
   }) async {
     try {
-      final uri = Uri.parse(_baseUrl).replace(
+      final uri = Uri.parse(MyApi.banner).replace(
         queryParameters: {
           'page': '$page',
           'limit': '$limit',
@@ -48,7 +44,7 @@ class BannerMovieService {
   static Future<List<BannerMovie>> fetchAllBanners({int limit = 20}) async {
     try {
       final uri = Uri.parse(
-        _baseUrl,
+        MyApi.banner,
       ).replace(queryParameters: {'limit': '$limit', 'publishStatus': 'true'});
       debugPrint('🏠 fetchAllBanners → GET $uri');
       final response = await http.get(uri, headers: _headers);
@@ -73,7 +69,7 @@ class BannerMovieService {
   }) async {
     try {
       final uri = Uri.parse(
-        _baseUrl,
+        MyApi.banner,
       ).replace(queryParameters: {'limit': '$limit', 'publishStatus': 'true'});
       debugPrint('⭐ fetchFeaturedBanners → GET $uri');
       final response = await http.get(uri, headers: _headers);
@@ -97,7 +93,7 @@ class BannerMovieService {
     int limit = 10,
   }) async {
     try {
-      final uri = Uri.parse(_baseUrl).replace(
+      final uri = Uri.parse(MyApi.banner).replace(
         queryParameters: {
           'limit': '$limit',
           'sortBy': 'createdAt',
@@ -123,7 +119,7 @@ class BannerMovieService {
 
   static Future<BannerMovie?> fetchBannerById(String id) async {
     try {
-      final uri = Uri.parse('$_baseUrl/$id');
+      final uri = Uri.parse('$MyApi.banner/$id');
       debugPrint('🔍 fetchBannerById → GET $uri (id: $id)');
       final response = await http.get(uri, headers: _headers);
       debugPrint('🔍 fetchBannerById ← status: ${response.statusCode}');
@@ -153,7 +149,7 @@ class BannerMovieService {
   }) async {
     try {
       final uri = Uri.parse(
-        _baseUrl,
+        MyApi.banner,
       ).replace(queryParameters: {'search': query, 'limit': '$limit'});
       debugPrint('🔎 searchBanners → GET $uri (query: "$query")');
       final response = await http.get(uri, headers: _headers);
@@ -175,7 +171,7 @@ class BannerMovieService {
   }) async {
     try {
       final uri = Uri.parse(
-        _baseUrl,
+        MyApi.banner,
       ).replace(queryParameters: {'publishStatus': 'true', 'limit': '$limit'});
       debugPrint('✅ fetchPublishedBanners → GET $uri');
       final response = await http.get(uri, headers: _headers);
@@ -196,7 +192,7 @@ class BannerMovieService {
 
   static Future<Map<String, dynamic>?> fetchMovieDetail(String movieId) async {
     try {
-      final uri = Uri.parse('$_moviesBaseUrl/$movieId'); // fetch by ID directly
+      final uri = Uri.parse('${MyApi.movies}/$movieId'); // fetch by ID directly
       debugPrint('🎬 Fetching movie detail: $uri');
 
       final response = await http.get(uri, headers: _headers);
